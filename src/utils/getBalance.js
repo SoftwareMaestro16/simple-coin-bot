@@ -15,7 +15,7 @@ async function getData(wallet) {
     return 0; 
   } catch (error) {
     if (error.response && error.response.status === 404) {
-      console.warn(`Wallet ${wallet} has no Jetton wallet.`);
+      // console.warn(`Wallet ${wallet} has no Jetton wallet.`);
       return 0; 
     }
 

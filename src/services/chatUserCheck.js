@@ -62,7 +62,7 @@ async function checkChatUsers(bot) {
 }
 
 function startChatUserCheck(bot) {
-  setInterval(() => checkChatUsers(bot), 10000);
+  setInterval(() => checkChatUsers(bot), 7200000);
 }
 // 3600000 - 1 hour
 
