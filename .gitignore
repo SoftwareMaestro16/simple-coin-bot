@@ -1,0 +1,13 @@
+.env
+users.db
+
+*.log
+
+node_modules/
+
+*.swp
+*.tmp
+.DS_Store
+
+dist/
+build/
