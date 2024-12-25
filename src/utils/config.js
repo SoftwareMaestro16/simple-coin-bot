@@ -2,18 +2,18 @@ const admins = [1196918969, 814746769, 265117521, 1047635437, 1784198705, 190387
 
 const chats = {
   lowLevel: {
-    id: -1002478241793,
-    url: 'https://t.me/+BErKBsNBzGk5MjMy', 
+    id: -1002411026595,
+    url: 'https://t.me/+QzE1IoUI7EoxNDBi', 
     requirement: 500000, 
   },
   mediumLevel: {
-    id: -10024782417930,
-    url: 'https://t.me/+BErKBsNBzGk5MjMy',
-    requirement: 5000000,
+    id: -4669052733,
+    url: 'https://t.me/+Hvdl9P1OSy0yZWMy',
+    requirement: 2000000,
   },
   highLevel: {
-    id: -10024782417930,
-    url: 'https://t.me/+BErKBsNBzGk5MjMy',
+    id: -1002305818240,
+    url: 'https://t.me/+KpcbiB-BdqxjNDAy',
     requirement: 10000000,
   },
 };
