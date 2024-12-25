@@ -36,8 +36,14 @@ function updateUserAddressAndBalance(id, address, balance) {
   stmt.run(address, balance, id);
 }
 
+function getAllUsers() {
+    const stmt = db.prepare('SELECT * FROM users');
+    return stmt.all(); 
+}
+
 module.exports = {
   addUser,
   getUserById,
   updateUserAddressAndBalance,
+  getAllUsers
 };

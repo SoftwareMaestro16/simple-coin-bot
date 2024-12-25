@@ -1,6 +1,6 @@
 const bot = require('../bot');
 const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePrivateChat } = require('./walletHandlers');
-const { getUserById, addUser } = require('../db');
+const { getUserById, addUser, getAllUsers } = require('../db');
 const { generateMainKeyboard } = require('./keyboardUtils');
 
 bot.onText(/\/start/, async (msg) => {
@@ -25,6 +25,27 @@ bot.onText(/\/start/, async (msg) => {
   bot.sendMessage(chatId, text, {
     reply_markup: { inline_keyboard: keyboard },
   });
+});
+
+bot.onText(/\/show_users/, (msg) => {
+  const chatId = msg.chat.id;
+
+  try {
+    const users = getAllUsers();
+    if (users.length === 0) {
+      bot.sendMessage(chatId, 'В базе данных нет пользователей.');
+    } else {
+      let userList = 'Список пользователей:\n';
+      users.forEach((user, index) => {
+        userList += `${index + 1}. ${user.name} (@${user.username || 'Не указан'})\n`;
+      });
+
+      bot.sendMessage(chatId, userList);
+    }
+  } catch (error) {
+    console.error('Ошибка при выводе пользователей:', error);
+    bot.sendMessage(chatId, 'Произошла ошибка при попытке получить список пользователей.');
+  }
 });
 
 bot.on('callback_query', async (callbackQuery) => {
