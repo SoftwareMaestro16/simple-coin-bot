@@ -189,7 +189,7 @@ async function handlePrivateChat(chatId, messageId, bot) {
   await bot.editMessageText(
     'Выберите уровень приватного чата, чтобы отправить заявку на вступление:\n\n' +
     '⬆️ Уровни:\n' +
-    '500K, 5M, 10M $LUDOMAN.',
+    '500K, 2M, 10M $LUDOMAN.',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -199,7 +199,7 @@ async function handlePrivateChat(chatId, messageId, bot) {
             { text: 'Low · 500K ⚡️', url: chats.lowLevel.url },
           ],
           [
-            { text: 'Medium · 5M 🌟', url: chats.mediumLevel.url },
+            { text: 'Medium · 2M 🌟', url: chats.mediumLevel.url },
           ],
           [
             { text: 'High · 10M 💎', url: chats.highLevel.url },
