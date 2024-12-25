@@ -15,10 +15,9 @@ async function getData(wallet) {
 
 function getBalance(data) {
   if (data && data.balance) {
-    return data.balance / 10 ** 9; 
-  } else {
-    console.error('Balance not found in the response data.');
-    return null; 
+    return data.balance / 10 ** 9 || 0; 
+  } else if (data && !data.balance) {
+    return 0; 
   }
 }
 

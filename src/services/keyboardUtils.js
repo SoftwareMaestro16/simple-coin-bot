@@ -6,6 +6,11 @@ function generateMainKeyboard(address) {
           ],
           [
             { text: 'Приватный Чат 🌟', callback_data: 'PrivateChat' },
+          ],
+          [
+            { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr'},
+            { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w'},
+            { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9'},
           ]
         ]
       : [

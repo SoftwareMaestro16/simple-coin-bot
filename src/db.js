@@ -41,9 +41,15 @@ function getAllUsers() {
     return stmt.all(); 
 }
 
+function getUserByAddress(address) {
+    const stmt = db.prepare('SELECT * FROM users WHERE address = ?');
+    return stmt.get(address); 
+}
+
 module.exports = {
   addUser,
   getUserById,
   updateUserAddressAndBalance,
-  getAllUsers
+  getAllUsers,
+  getUserByAddress
 };

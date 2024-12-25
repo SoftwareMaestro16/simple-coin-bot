@@ -2,6 +2,7 @@ const bot = require('../bot');
 const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePrivateChat } = require('./walletHandlers');
 const { getUserById, addUser, getAllUsers } = require('../db');
 const { generateMainKeyboard } = require('./keyboardUtils');
+const { admins, chats } = require('../utils/config');
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -86,20 +87,28 @@ bot.on('chat_join_request', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
-  console.log(`Received join request from user ${userId} in chat ${chatId}`);
+  // console.log(`Received join request from user ${userId} in chat ${chatId}`);
 
   const user = getUserById(userId);
 
   if (!user) {
-    console.log(`User ${userId} not found in the database.`);
+    // console.log(`User ${userId} not found in the database.`);
     return;
   }
 
-  const requiredBalance = 500000;
+  const chatConfig = Object.values(chats).find(chat => chat.id === chatId);
+
+  if (!chatConfig) {
+    // console.log(`Chat ID ${chatId} not found in configuration.`);
+    return;
+  }
+
+  const requiredBalance = chatConfig.requirement;
+
   if (user.balance >= requiredBalance) {
     try {
       await bot.approveChatJoinRequest(chatId, userId);
-      console.log(`Approved join request for user ${userId}.`);
+      // console.log(`Approved join request for user ${userId} in chat ${chatId}.`);
 
       const firstName = msg.from.first_name || 'Участник';
       await bot.sendMessage(
@@ -108,14 +117,14 @@ bot.on('chat_join_request', async (msg) => {
         { parse_mode: 'HTML' }
       );
     } catch (error) {
-      console.error(`Failed to approve join request for user ${userId}:`, error);
+      console.error(`Failed to approve join request for user ${userId} in chat ${chatId}:`, error);
     }
   } else {
     try {
       await bot.declineChatJoinRequest(chatId, userId);
-      console.log(`Declined join request for user ${userId} due to insufficient balance.`);
+      // console.log(`Declined join request for user ${userId} in chat ${chatId} due to insufficient balance.`);
     } catch (error) {
-      console.error(`Failed to decline join request for user ${userId}:`, error);
+      console.error(`Failed to decline join request for user ${userId} in chat ${chatId}:`, error);
     }
   }
 });

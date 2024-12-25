@@ -3,9 +3,10 @@ const { getWalletInfo } = require('../tonConnect/wallets');
 const { editTonAddress } = require('../utils/editTonAddress');
 const { generateQRCode, getConnector } = require('../tonConnect/connector');
 const { getData } = require('../utils/getBalance');
-const { updateUserAddressAndBalance, getUserById } = require('../db');
+const { updateUserAddressAndBalance, getUserById, getUserByAddress } = require('../db');
 const { generateProfileKeyboard } = require('./keyboardUtils');
 const bot = require('../bot');
+const { admins, chats } = require('../utils/config');
 
 async function handleProfile(chatId, messageId) {
   try {
@@ -19,7 +20,7 @@ async function handleProfile(chatId, messageId) {
       return;
     }
 
-    const address = user.address || 'Не Подключен';
+    const address = editTonAddress(user.address) || 'Не Подключен';
     const balance = new Intl.NumberFormat('en-US').format(user.balance || 0);
 
     const options = generateProfileKeyboard(address);
@@ -29,7 +30,7 @@ async function handleProfile(chatId, messageId) {
       `<b>Имя:</b> <code>${user.id}</code>\n` +
       `<b>Имя:</b> ${user.name}\n` +
       `<b>Username:</b> @${user.username}\n` +
-      `<b>Адрес:</b> <code>${editTonAddress(address)}</code>\n` +
+      `<b>Адрес:</b> <code>${address}</code>\n` +
       `<b>Баланс:</b> ${balance}`,
       {
         chat_id: chatId,
@@ -80,6 +81,31 @@ async function handleWalletConnection(chatId, walletName, messageId) {
       if (wallet) {
         const userFriendlyAddress = toUserFriendlyAddress(wallet.account.address);
 
+        const existingUser = getUserByAddress(userFriendlyAddress);
+
+        if (existingUser) {
+          if (qrMessageId) {
+            await bot.deleteMessage(chatId, qrMessageId);
+          }
+
+          await bot.sendMessage(
+            chatId,
+            '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
+                    { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
+                    { text: 'TonHub', callback_data: 'TonHub' },
+                  ],
+                ],
+              },
+            }
+          );
+          return; 
+        }
+
         try {
           const rawBalance = await getData(userFriendlyAddress);
           const balance = new Intl.NumberFormat('en-US').format(rawBalance);
@@ -106,7 +132,25 @@ async function handleWalletConnection(chatId, walletName, messageId) {
           );
         } catch (error) {
           console.error('Failed to fetch wallet balance:', error);
-          bot.sendMessage(chatId, 'Произошла ошибка при получении данных кошелька.');
+          if (qrMessageId) {
+            await bot.deleteMessage(chatId, qrMessageId);
+          }
+          bot.sendMessage(chatId, '❌ У вас нет на балансе $LUDOMAN. Кошелек не подключен.', {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr'},
+                  { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w'},
+                  { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9'},
+                ],
+                [
+                  { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
+                  { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
+                  { text: 'TonHub', callback_data: 'TonHub' },
+                ],
+              ],
+            },
+          });
         }
       } else {
         bot.sendMessage(chatId, 'Кошелек Отключен.');
@@ -143,14 +187,22 @@ async function handleWalletConnection(chatId, walletName, messageId) {
 
 async function handlePrivateChat(chatId, messageId, bot) {
   await bot.editMessageText(
-    'Чтобы попасть в приватный чат, вам необходимо иметь на балансе подключенного кошелька не менее 500000 токенов.',
+    'Выберите уровень приватного чата, чтобы отправить заявку на вступление:\n\n' +
+    '⬆️ Уровни:\n' +
+    '500K, 5M, 10M $LUDOMAN.',
     {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: {
         inline_keyboard: [
           [
-            { text: 'Отправить Заявку ⚡️', url: 'https://t.me/+BErKBsNBzGk5MjMy' },
+            { text: 'Low · 500K ⚡️', url: chats.lowLevel.url },
+          ],
+          [
+            { text: 'Medium · 5M 🌟', url: chats.mediumLevel.url },
+          ],
+          [
+            { text: 'High · 10M 💎', url: chats.highLevel.url },
           ],
           [
             { text: '« Назад', callback_data: 'BackToMenu' },
