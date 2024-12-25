@@ -3,24 +3,27 @@ const LUDOMAN_ADDRESS = 'EQDbKihXMZuNfl7m7VcNrHIyYYYgCFPhccIqNN_ocNn-PBCb';
 
 async function getData(wallet) {
   try {
-    const response = await axios.get(
-      `https://tonapi.io/v2/accounts/${wallet}/jettons/${LUDOMAN_ADDRESS}?currencies=ton,usd,rub&supported_extensions=custom_payload`
-    );
+    const response = await axios.get(`https://tonapi.io/v2/accounts/${wallet}/jettons/${LUDOMAN_ADDRESS}`);
 
-    if (response.data) {
-      return getBalance(response.data);
+    if (response.data && response.data.balance) {
+      return response.data.balance / 10 ** 9;
     }
 
-    console.warn('Empty response from API.');
+    // console.warn(`Jetton not found for wallet ${wallet}.`);
     return 0; 
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      // console.warn(`Wallet ${wallet} has no Jetton wallet.`);
-      return 0; 
+    if (error.response) {
+      if (error.response.status === 404) {
+        console.error('404 Not Found: Jetton or wallet does not exist.');
+        return 0;
+      }
+      if (error.response.status === 429) {
+        console.warn('Rate limit exceeded. Retrying...');
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        return getData(wallet);
+      }
     }
-
-    console.error('Error fetching data:', error.message || error);
-    return 0; 
+    throw error; 
   }
 }
 
