@@ -21,7 +21,19 @@ async function handleProfile(chatId, messageId) {
     }
 
     const address = editTonAddress(user.address) || 'Не Подключен';
-    const balance = new Intl.NumberFormat('en-US').format(user.balance || 0);
+
+    let balance = 0;
+    if (user.address) {
+      try {
+        balance = await getData(user.address); 
+        balance = new Intl.NumberFormat('en-US').format(balance || 0); 
+      } catch (error) {
+        console.error('Error fetching balance from API:', error);
+        balance = 'Ошибка загрузки';
+      }
+    } else {
+      balance = 'Не Подключен';
+    }
 
     const options = generateProfileKeyboard(address);
 
@@ -41,7 +53,7 @@ async function handleProfile(chatId, messageId) {
     );
   } catch (error) {
     console.error('Error fetching profile data:', error);
-    bot.editMessageText('Произошла ошибка при загрузке профиля.', {
+    await bot.editMessageText('Произошла ошибка при загрузке профиля.', {
       chat_id: chatId,
       message_id: messageId,
     });
