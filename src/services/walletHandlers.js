@@ -90,6 +90,11 @@ async function handleWalletConnection(chatId, walletName, messageId) {
     let qrMessageId;
 
     connector.onStatusChange(async (wallet) => {
+      if (!wallet) {
+        console.warn('Disconnected.');
+        return;
+      }
+      
       if (wallet) {
         const userFriendlyAddress = toUserFriendlyAddress(wallet.account.address);
 
