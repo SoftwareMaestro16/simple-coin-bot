@@ -139,7 +139,14 @@ bot.on('chat_join_request', async (msg) => {
   const requiredBalance = chatConfig.requirement;
 
   try {
-    const currentBalance = await getBalance(userId);
+    const address = user.address;
+
+    if (!address) {
+      console.error(`Address не найден для пользователя ${userId}`);
+      return;
+    }
+
+    const currentBalance = await getBalance(address);
 
     if (currentBalance >= requiredBalance) {
       await bot.approveChatJoinRequest(chatId, userId);
