@@ -9,7 +9,7 @@ const chats = {
   mediumLevel: {
     id: -1002469377567,
     url: 'https://t.me/+Hvdl9P1OSy0yZWMy',
-    requirement: 2000000,
+    requirement: 200000,
   },
   highLevel: {
     id: -1002305818240,
