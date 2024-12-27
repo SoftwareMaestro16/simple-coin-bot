@@ -6,46 +6,78 @@ const { admins, chats } = require('../utils/config');
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const name = msg.from.first_name || 'Unknown';
-  const username = msg.from.username || 'NoUsername';
-
-  const user = getUserById(chatId);
-
-  if (!user) {
-    addUser(chatId, name, username);
-  }
-
-  const address = user?.address || null;
-
-  const text = address
-    ? '✅ Ваш кошелек уже подключен. Используйте кнопки ниже:'
-    : '☀️ Добро пожаловать! Пожалуйста, выберите Кошелек для подключения:';
-
-  const keyboard = generateMainKeyboard(address);
-
-  bot.sendMessage(chatId, text, {
-    reply_markup: { inline_keyboard: keyboard },
-  });
-});
-
-bot.onText(/\/show_users/, (msg) => {
-  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const firstName = msg.from.first_name || 'Unknown';
+  const userName = msg.from.username || null;
 
   try {
-    const users = getAllUsers();
+    const existingUser = await getUserById(userId);
+
+    if (!existingUser) {
+      await addUser(userId, firstName, userName);
+    }
+
+    const address = existingUser?.address || null;
+
+    const text = address
+      ? '✅ Ваш кошелек уже подключен. Используйте кнопки ниже:'
+      : '☀️ Добро пожаловать! Пожалуйста, выберите Кошелек для подключения:';
+
+    const keyboard = generateMainKeyboard(address);
+
+    bot.sendMessage(chatId, text, {
+      reply_markup: { inline_keyboard: keyboard },
+    });
+  } catch (error) {
+    bot.sendMessage(chatId, 'Произошла ошибка при выполнении команды.');
+  }
+});
+
+bot.onText(/\/show_users/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.')
+  }
+
+  try {
+    const users = await getAllUsers(); 
     if (users.length === 0) {
       bot.sendMessage(chatId, 'В базе данных нет пользователей.');
     } else {
-      let userList = 'Список пользователей:\n';
+      let userList = '📋 Список пользователей:\n\n';
+
       users.forEach((user, index) => {
-        userList += `${index + 1}. ${user.name} (@${user.username || 'Не указан'})\n`;
+        const firstName = user.firstName || 'Не указано';
+        const userName = user.userName ? `@${user.userName}` : 'Не указан';
+        userList += `${index + 1}. <b>${firstName}</b> (${userName})\n`;
       });
 
-      bot.sendMessage(chatId, userList);
+      bot.sendMessage(chatId, userList, { parse_mode: 'HTML' });
     }
   } catch (error) {
     console.error('Ошибка при выводе пользователей:', error);
     bot.sendMessage(chatId, 'Произошла ошибка при попытке получить список пользователей.');
+  }
+});
+
+bot.onText(/\/count_users/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.')
+  }
+
+  try {
+    const users = await getAllUsers(); 
+    const userCount = users.length;
+
+    bot.sendMessage(chatId, `📊 В базе данных ${userCount} пользователь(ей).`);
+  } catch (error) {
+    console.error('Ошибка при подсчете пользователей:', error);
+    bot.sendMessage(chatId, 'Произошла ошибка при попытке подсчитать пользователей.');
   }
 });
 
@@ -59,7 +91,7 @@ bot.on('callback_query', async (callbackQuery) => {
   } else if (callbackData === 'DisconnectWallet') {
     await handleDisconnectWallet(chatId, messageId);
   } else if (callbackData === 'PrivateChat') {
-    await handlePrivateChat(chatId, messageId, bot)
+    await handlePrivateChat(chatId, messageId, bot);
   } else if (callbackData === 'BackToMenu') {
     await bot.editMessageText(
       '✅ Ваш кошелек уже подключен. Используйте кнопки ниже:',
@@ -75,10 +107,10 @@ bot.on('callback_query', async (callbackQuery) => {
               { text: 'Приватный Чат 🌟', callback_data: 'PrivateChat' },
             ],
             [
-              { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr'},
-              { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w'},
-              { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9'},
-            ]
+              { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr' },
+              { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w' },
+              { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9' },
+            ],
           ],
         },
       }
@@ -92,19 +124,15 @@ bot.on('chat_join_request', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
-  // console.log(`Received join request from user ${userId} in chat ${chatId}`);
-
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
 
   if (!user) {
-    // console.log(`User ${userId} not found in the database.`);
     return;
   }
 
   const chatConfig = Object.values(chats).find(chat => chat.id === chatId);
 
   if (!chatConfig) {
-    // console.log(`Chat ID ${chatId} not found in configuration.`);
     return;
   }
 
@@ -113,7 +141,6 @@ bot.on('chat_join_request', async (msg) => {
   if (user.balance >= requiredBalance) {
     try {
       await bot.approveChatJoinRequest(chatId, userId);
-      // console.log(`Approved join request for user ${userId} in chat ${chatId}.`);
 
       const firstName = msg.from.first_name || 'Участник';
       await bot.sendMessage(
@@ -127,7 +154,6 @@ bot.on('chat_join_request', async (msg) => {
   } else {
     try {
       await bot.declineChatJoinRequest(chatId, userId);
-      // console.log(`Declined join request for user ${userId} in chat ${chatId} due to insufficient balance.`);
     } catch (error) {
       console.error(`Failed to decline join request for user ${userId} in chat ${chatId}:`, error);
     }

@@ -10,7 +10,7 @@ const { admins, chats } = require('../utils/config');
 
 async function handleProfile(chatId, messageId) {
   try {
-    const user = getUserById(chatId);
+    const user = await getUserById(chatId);
 
     if (!user) {
       await bot.editMessageText('Данные профиля не найдены.', {
@@ -39,9 +39,9 @@ async function handleProfile(chatId, messageId) {
 
     await bot.editMessageText(
       `👤 <b>Ваш профиль:</b>\n\n` +
-      `<b>Имя:</b> <code>${user.id}</code>\n` +
-      `<b>Имя:</b> ${user.name}\n` +
-      `<b>Username:</b> @${user.username}\n` +
+      `<b>Имя:</b> <code>${user.userId}</code>\n` +
+      `<b>Имя:</b> ${user.firstName}\n` +
+      `<b>Username:</b> @${user.userName}\n` +
       `<b>Адрес:</b> <code>${address}</code>\n` +
       `<b>Баланс:</b> ${balance}`,
       {
@@ -98,30 +98,35 @@ async function handleWalletConnection(chatId, walletName, messageId) {
       if (wallet) {
         const userFriendlyAddress = toUserFriendlyAddress(wallet.account.address);
 
-        const existingUser = getUserByAddress(userFriendlyAddress);
+  if (!userFriendlyAddress) {
+    console.error('Invalid wallet address detected.');
+    return;
+  }
 
-        if (existingUser) {
-          if (qrMessageId) {
-            await bot.deleteMessage(chatId, qrMessageId);
-          }
+  const existingUser = await getUserByAddress(userFriendlyAddress);
 
-          await bot.sendMessage(
-            chatId,
-            '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
-            {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
-                    { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
-                    { text: 'TonHub', callback_data: 'TonHub' },
-                  ],
-                ],
-              },
-            }
-          );
-          return; 
-        }
+  if (existingUser) {
+    if (qrMessageId) {
+      await bot.deleteMessage(chatId, qrMessageId);
+    }
+
+    await bot.sendMessage(
+      chatId,
+      '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
+              { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
+              { text: 'TonHub', callback_data: 'TonHub' },
+            ],
+          ],
+        },
+      }
+    );
+    return; 
+  }
 
         try {
           const rawBalance = await getData(userFriendlyAddress);

@@ -1,5 +1,10 @@
 function editTonAddress(address) {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`
+    if (!address || typeof address !== 'string') {
+        console.error('Invalid address provided:', address);
+        return 'Не подключен'; 
+    }
+    
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
 module.exports = {

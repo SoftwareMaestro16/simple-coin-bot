@@ -2,8 +2,8 @@ const admins = [1196918969, 814746769, 265117521, 1047635437, 1784198705, 190387
 
 const chats = {
   lowLevel: {
-    id: -1002411026595,
-    url: 'https://t.me/+QzE1IoUI7EoxNDBi', 
+    id: -1002411026595, // -1002478241793
+    url: 'https://t.me/+QzE1IoUI7EoxNDBi', // https://t.me/+BErKBsNBzGk5MjMy
     requirement: 500000, 
   },
   mediumLevel: {
