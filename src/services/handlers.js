@@ -124,15 +124,19 @@ bot.on('chat_join_request', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
+  console.log(`Получена заявка на присоединение: chatId=${chatId}, userId=${userId}`);
+
   const user = await getUserById(userId);
 
   if (!user) {
+    console.warn(`Пользователь с ID ${userId} не найден в базе данных.`);
     return;
   }
 
   const chatConfig = Object.values(chats).find(chat => chat.id === chatId);
 
   if (!chatConfig) {
+    console.warn(`Конфигурация для чата с ID ${chatId} не найдена.`);
     return;
   }
 
@@ -142,13 +146,18 @@ bot.on('chat_join_request', async (msg) => {
     const address = user.address;
 
     if (!address) {
-      console.error(`Address не найден для пользователя ${userId}`);
+      console.error(`Address не найден для пользователя ${userId}. Заявка отклонена.`);
       return;
     }
 
+    console.log(`Проверяем баланс пользователя: userId=${userId}, address=${address}`);
+
     const currentBalance = await getBalance(address);
 
+    console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${requiredBalance}`);
+
     if (currentBalance >= requiredBalance) {
+      console.log(`Баланс пользователя достаточный. Принимаем заявку: userId=${userId}`);
       await bot.approveChatJoinRequest(chatId, userId);
 
       const firstName = msg.from.first_name || 'Участник';
@@ -158,9 +167,10 @@ bot.on('chat_join_request', async (msg) => {
         { parse_mode: 'HTML' }
       );
     } else {
+      console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${requiredBalance}`);
       await bot.declineChatJoinRequest(chatId, userId);
     }
   } catch (error) {
-    console.error(`Ошибка обработки запроса на присоединение:`, error);
+    console.error(`Ошибка обработки запроса на присоединение: userId=${userId}, chatId=${chatId}`, error);
   }
 });
