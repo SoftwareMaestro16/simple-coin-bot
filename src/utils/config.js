@@ -14,7 +14,7 @@ const chats = {
   highLevel: {
     id: -1002305818240,
     url: 'https://t.me/+KpcbiB-BdqxjNDAy',
-    requirement: 10000,
+    requirement: 10000000,
   },
 };
 
