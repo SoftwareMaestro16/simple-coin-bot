@@ -14,6 +14,7 @@
     "@tonconnect/sdk": "^3.0.5",
     "axios": "^1.7.9",
     "better-sqlite3": "^11.7.0",
+    "custom-event": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mongoose": "^8.9.2",
