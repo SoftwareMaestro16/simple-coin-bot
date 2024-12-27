@@ -3,6 +3,7 @@ const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePri
 const { getUserById, addUser, getAllUsers } = require('../db');
 const { generateMainKeyboard } = require('./keyboardUtils');
 const { admins, chats } = require('../utils/config');
+const { getData } = require('../utils/getBalance');
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -152,7 +153,7 @@ bot.on('chat_join_request', async (msg) => {
 
     console.log(`Проверяем баланс пользователя: userId=${userId}, address=${address}`);
 
-    const currentBalance = await getBalance(address);
+    const currentBalance = await getData(address);
 
     console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${requiredBalance}`);
 
