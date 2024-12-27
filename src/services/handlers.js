@@ -138,8 +138,10 @@ bot.on('chat_join_request', async (msg) => {
 
   const requiredBalance = chatConfig.requirement;
 
-  if (user.balance >= requiredBalance) {
-    try {
+  try {
+    const currentBalance = await getBalance(userId);
+
+    if (currentBalance >= requiredBalance) {
       await bot.approveChatJoinRequest(chatId, userId);
 
       const firstName = msg.from.first_name || 'Участник';
@@ -148,14 +150,10 @@ bot.on('chat_join_request', async (msg) => {
         `🎉 Добро пожаловать, <b>${firstName}</b>, в наш приватный чат! 🌟\n\n`,
         { parse_mode: 'HTML' }
       );
-    } catch (error) {
-      console.error(`Failed to approve join request for user ${userId} in chat ${chatId}:`, error);
-    }
-  } else {
-    try {
+    } else {
       await bot.declineChatJoinRequest(chatId, userId);
-    } catch (error) {
-      console.error(`Failed to decline join request for user ${userId} in chat ${chatId}:`, error);
     }
+  } catch (error) {
+    console.error(`Ошибка обработки запроса на присоединение:`, error);
   }
 });
