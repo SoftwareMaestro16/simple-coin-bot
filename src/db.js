@@ -2,10 +2,11 @@ const mongoose = require('mongoose');
 const User = require('./utils/User');
 require('dotenv').config(); 
 
-mongoose
-  .connect(process.env.DB_CONNECT)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+const dbConnect = process.env.DB_CONNECT;
+
+mongoose.connect(dbConnect, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 async function addUser(userId, firstName, userName = null) {
     User.syncIndexes()
