@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('./utils/User');
+const User = require('./models/User');
+const Collector = require('./models/Collector');
 require('dotenv').config(); 
 
 const dbConnect = process.env.DB_CONNECT;
@@ -43,10 +44,16 @@ async function getUserById(userId) {
   }
 }
 
-async function updateUserAddressAndBalance(userId, address, balance) {
+async function updateUserAddressAndBalance(userId, address, balance, walletName = null) {
   try {
-    await User.updateOne({ userId }, { $set: { address, balance } });
-    console.log(`User updated: ${userId}`);
+    const updateData = {
+      address: address || null, 
+      balance: balance || 0,  
+      connectedWallet: walletName, 
+    };
+
+    await User.updateOne({ userId }, { $set: updateData });
+    console.log(`User updated: ${userId} with wallet: ${walletName}`);
   } catch (error) {
     console.error('Error updating user address and balance:', error);
   }
@@ -77,10 +84,92 @@ async function getUserByAddress(address) {
     }
 }
 
+async function getCollector() {
+  try {
+    let collector = await Collector.findOne();
+    if (!collector) {
+      collector = new Collector(); 
+      await collector.save();
+    }
+    return collector;
+  } catch (error) {
+    console.error('Error fetching collector data:', error);
+    throw error;
+  }
+}
+
+async function setCollectorAddress(address) {
+  try {
+    const collector = await getCollector();
+    collector.collectorAddress = address;
+    await collector.save();
+    console.log('Collector address updated:', address);
+  } catch (error) {
+    console.error('Error setting collector address:', error);
+    throw error;
+  }
+}
+
+async function setMonthlyTokens(amount) {
+  try {
+    const collector = await getCollector();
+
+    if (typeof amount !== 'number' || amount <= 0) {
+      throw new Error('Invalid monthly amount. It must be a positive number.');
+    }
+
+    collector.monthlyAmount = amount; 
+    await collector.save();
+
+    console.log(`Monthly tokens updated: ${amount}`);
+  } catch (error) {
+    console.error('Error updating monthly tokens:', error);
+    throw error;
+  }
+}
+
+async function setPaymentTrackingCode(userId, trackingCode) {
+  return await User.findOneAndUpdate(
+    { userId },
+    { paymentTrackingCode: trackingCode, subscriptionExpiresAt: null },
+    { new: true }
+  );
+}
+
+async function activateSubscription(userId, durationMinutes) {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+  return await User.findOneAndUpdate(
+    { userId },
+    { paymentTrackingCode: null, subscriptionExpiresAt: expiresAt },
+    { new: true }
+  );
+}
+
+async function getUserById(userId) {
+  return await User.findOne({ userId });
+}
+
+async function resetPaymentTrackingCode(userId) {
+  return await User.findOneAndUpdate(
+    { userId },
+    { paymentTrackingCode: null },
+    { new: true }
+  );
+}
+
 module.exports = {
   addUser,
   getUserById,
   updateUserAddressAndBalance,
   getAllUsers,
   getUserByAddress,
+  getCollector,
+  setCollectorAddress,
+  setMonthlyTokens,
+
+  setPaymentTrackingCode,
+  activateSubscription,
+  getUserById,
+  resetPaymentTrackingCode,
 };

@@ -19,6 +19,8 @@ class CustomStorage {
   }
 }
 
+
+
 function getConnector(chatId) {
   console.log(`Creating connector for chatId: ${chatId}`);
   return new TonConnect({

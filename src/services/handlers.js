@@ -1,9 +1,11 @@
 const bot = require('../bot');
-const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePrivateChat } = require('./walletHandlers');
+const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePrivateChat, handleUpdateTrackingCode, handleMonthlyChatMenu } = require('./walletHandlers');
 const { getUserById, addUser, getAllUsers } = require('../db');
 const { generateMainKeyboard } = require('./keyboardUtils');
 const { admins, chats } = require('../utils/config');
 const { getData } = require('../utils/getBalance');
+const { setCollectorAddress, setMonthlyTokens, getCollector } = require("../db.js");
+const { adminCommands } = require("../utils/adminCommands.js")
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -39,11 +41,11 @@ bot.onText(/\/show_users/, async (msg) => {
   const userId = msg.from.id;
 
   if (!admins.includes(userId)) {
-    return bot.sendMessage(chatId, 'У вас нет прав.')
+    return bot.sendMessage(chatId, 'У вас нет прав.');
   }
 
   try {
-    const users = await getAllUsers(); 
+    const users = await getAllUsers();
     if (users.length === 0) {
       bot.sendMessage(chatId, 'В базе данных нет пользователей.');
     } else {
@@ -68,11 +70,11 @@ bot.onText(/\/count_users/, async (msg) => {
   const userId = msg.from.id;
 
   if (!admins.includes(userId)) {
-    return bot.sendMessage(chatId, 'У вас нет прав.')
+    return bot.sendMessage(chatId, 'У вас нет прав.');
   }
 
   try {
-    const users = await getAllUsers(); 
+    const users = await getAllUsers();
     const userCount = users.length;
 
     bot.sendMessage(chatId, `📊 В базе данных ${userCount} пользователь(ей).`);
@@ -80,6 +82,124 @@ bot.onText(/\/count_users/, async (msg) => {
     console.error('Ошибка при подсчете пользователей:', error);
     bot.sendMessage(chatId, 'Произошла ошибка при попытке подсчитать пользователей.');
   }
+});
+
+bot.onText(/\/set_collector_address/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  await bot.sendMessage(chatId, 'Пожалуйста, отправьте новый адрес сборщика токенов.\nВведите /cancel, чтобы отменить.');
+
+  const listener = bot.on('message', async (response) => {
+    if (response.text === '/cancel') {
+      bot.removeListener('message', listener);
+      return bot.sendMessage(chatId, '❌ Ввод отменен.');
+    }
+
+    try {
+      const address = response.text.trim();
+      if (!address) throw new Error('Пустой адрес.');
+
+      await setCollectorAddress(address);
+      await bot.sendMessage(chatId, `✅ Адрес сборщика установлен: ${address}`);
+      bot.removeListener('message', listener);
+    } catch (error) {
+      console.error('Error setting collector address:', error);
+      await bot.sendMessage(chatId, '❌ Произошла ошибка при установке адреса.');
+      bot.removeListener('message', listener);
+    }
+  });
+});
+
+bot.onText(/\/set_monthly_tokens/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  await bot.sendMessage(chatId, 'Пожалуйста, отправьте количество токенов для ежемесячной оплаты.\nВведите /cancel, чтобы отменить.');
+
+  const listener = bot.on('message', async (response) => {
+    if (response.text === '/cancel') {
+      bot.removeListener('message', listener);
+      return bot.sendMessage(chatId, '❌ Ввод отменен.');
+    }
+
+    try {
+      const input = response.text.trim().replace(',', '.');
+      const tokens = parseFloat(input);
+
+      if (isNaN(tokens) || tokens <= 0) {
+        throw new Error('Некорректное количество токенов.');
+      }
+
+      await setMonthlyTokens(tokens);
+      await bot.sendMessage(chatId, `✅ Количество токенов установлено: ${tokens}`);
+      bot.removeListener('message', listener);
+    } catch (error) {
+      console.error('Error setting monthly tokens:', error);
+      await bot.sendMessage(chatId, '❌ Произошла ошибка при установке количества токенов. Проверьте, что вы ввели корректное значение.');
+      bot.removeListener('message', listener);
+    }
+  });
+});
+
+bot.onText(/\/get_payment_info/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  try {
+    const collector = await getCollector();
+
+    if (!collector || !collector.collectorAddress || collector.monthlyAmount === undefined) {
+      await bot.sendMessage(
+        chatId,
+        '❌ Данные сборщика или количество токенов не настроены. Пожалуйста, настройте их с помощью /set_collector_address и /set_monthly_tokens.'
+      );
+      return;
+    }
+
+    const message = `
+💡 <b>Информация об оплате:</b>
+
+🔑 <b>Адрес Cборщика:</b>
+<code>${collector.collectorAddress}.</code>
+
+💰 <b>Сумма Ежемесячного Платежа:</b> ${collector.monthlyAmount} $SC.
+    `;
+
+    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+  } catch (error) {
+    console.error('Error fetching payment info:', error);
+    await bot.sendMessage(chatId, '❌ Произошла ошибка при получении информации об оплате.');
+  }
+});
+
+bot.onText(/\/commands/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  let commandsList = '📜 <b>Доступные команды для администраторов:</b>\n\n';
+
+  adminCommands.forEach((cmd, index) => {
+    commandsList += `${index + 1}. <b>${cmd.command}</b> - ${cmd.description}\n`;
+  });
+
+  bot.sendMessage(chatId, commandsList, { parse_mode: 'HTML' });
 });
 
 bot.on('callback_query', async (callbackQuery) => {
@@ -93,6 +213,10 @@ bot.on('callback_query', async (callbackQuery) => {
     await handleDisconnectWallet(chatId, messageId);
   } else if (callbackData === 'PrivateChat') {
     await handlePrivateChat(chatId, messageId, bot);
+  } else if (callbackData === 'UpdateTrackingCode') {
+    await handleUpdateTrackingCode(chatId, messageId, bot);
+  } else if (callbackData === 'MonthlyChat') {
+      await handleMonthlyChatMenu(chatId, messageId, bot);
   } else if (callbackData === 'BackToMenu') {
     await bot.editMessageText(
       '✅ Ваш кошелек уже подключен. Используйте кнопки ниже:',
@@ -108,9 +232,7 @@ bot.on('callback_query', async (callbackQuery) => {
               { text: 'Приватный Чат 🌟', callback_data: 'PrivateChat' },
             ],
             [
-              { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr' },
-              { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w&ft=TON&tt=EQDbKihXMZuNfl7m7VcNrHIyYYYgCFPhccIqNN_ocNn-PBCb' },
-              { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9' },
+              { text: 'DeDust 🟨', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft'},
             ],
           ],
         },

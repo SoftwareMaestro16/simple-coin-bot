@@ -7,6 +7,10 @@ const { updateUserAddressAndBalance, getUserById, getUserByAddress } = require('
 const { generateProfileKeyboard } = require('./keyboardUtils');
 const bot = require('../bot');
 const { admins, chats } = require('../utils/config');
+const User = require('../models/User'); 
+const { generatePayLink } = require('../utils/generatePayLink');
+const QRCode = require('qrcode');
+const { startPaymentVerification } = require('../utils/verifyPayment');
 
 async function handleProfile(chatId, messageId) {
   try {
@@ -61,7 +65,7 @@ async function handleProfile(chatId, messageId) {
 }
 
 async function handleDisconnectWallet(chatId, messageId) {
-  updateUserAddressAndBalance(chatId, null, 0);
+  await updateUserAddressAndBalance(chatId, null, 0, null);
 
   const keyboard = generateProfileKeyboard('Не Подключен');
 
@@ -94,45 +98,46 @@ async function handleWalletConnection(chatId, walletName, messageId) {
         console.warn('Disconnected.');
         return;
       }
-      
+
       if (wallet) {
         const userFriendlyAddress = toUserFriendlyAddress(wallet.account.address);
 
-  if (!userFriendlyAddress) {
-    console.error('Invalid wallet address detected.');
-    return;
-  }
+        if (!userFriendlyAddress) {
+          console.error('Invalid wallet address detected.');
+          return;
+        }
 
-  const existingUser = await getUserByAddress(userFriendlyAddress);
+        const existingUser = await getUserByAddress(userFriendlyAddress);
 
-  if (existingUser) {
-    if (qrMessageId) {
-      await bot.deleteMessage(chatId, qrMessageId);
-    }
+        if (existingUser) {
+          if (qrMessageId) {
+            await bot.deleteMessage(chatId, qrMessageId);
+          }
 
-    await bot.sendMessage(
-      chatId,
-      '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
-              { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
-              { text: 'TonHub', callback_data: 'TonHub' },
-            ],
-          ],
-        },
-      }
-    );
-    return; 
-  }
+          await bot.sendMessage(
+            chatId,
+            '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
+                    { text: 'MyTonWallet', callback_data: 'MyTonWallet' },
+                    { text: 'TonHub', callback_data: 'TonHub' },
+                  ],
+                ],
+              },
+            }
+          );
+          return;
+        }
 
         try {
           const rawBalance = await getData(userFriendlyAddress);
           const balance = new Intl.NumberFormat('en-US').format(rawBalance);
 
-          updateUserAddressAndBalance(chatId, userFriendlyAddress, rawBalance);
+          // Обновляем информацию в базе данных, включая название кошелька
+          updateUserAddressAndBalance(chatId, userFriendlyAddress, rawBalance, wallet.device.appName);
 
           if (qrMessageId) {
             await bot.deleteMessage(chatId, qrMessageId);
@@ -140,7 +145,7 @@ async function handleWalletConnection(chatId, walletName, messageId) {
 
           bot.sendMessage(
             chatId,
-            `🎉 <b>${wallet.device.appName}</b> Кошелек Подключен!\nАдрес: <code>${editTonAddress(userFriendlyAddress)}</code>\n<b>$LUDOMAN: </b><code>${balance}</code>`,
+            `🎉 <b>${wallet.device.appName}</b> Кошелек Подключен!\nАдрес: <code>${editTonAddress(userFriendlyAddress)}</code>\n<b>$SC: </b><code>${balance}</code>`,
             {
               parse_mode: 'HTML',
               reply_markup: {
@@ -157,13 +162,11 @@ async function handleWalletConnection(chatId, walletName, messageId) {
           if (qrMessageId) {
             await bot.deleteMessage(chatId, qrMessageId);
           }
-          bot.sendMessage(chatId, '❌ У вас нет на балансе $LUDOMAN. Кошелек не подключен.', {
+          bot.sendMessage(chatId, '❌ У вас нет на балансе $SC. Кошелек не подключен.', {
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: 'Blum 🗃', url: 'https://t.me/blum/app?startapp=memepadjetton_LUDOMAN_hFG7q-ref_Y9kokQfbIr'},
-                  { text: 'STON.fi 💎', url: 'https://app.ston.fi/swap?chartVisible=false&chartInterval=1w'},
-                  { text: 'BigPump ▶️', url: 'https://t.me/pocketfi_bot/bigpump?startapp=vlady_uk_8859-eyJjb2luSWQiOiI4NDEzNiJ9'},
+                  { text: 'DeDust 🟨', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft' },
                 ],
                 [
                   { text: 'Tonkeeper', callback_data: 'Tonkeeper' },
@@ -208,36 +211,232 @@ async function handleWalletConnection(chatId, walletName, messageId) {
 }
 
 async function handlePrivateChat(chatId, messageId, bot) {
-  await bot.editMessageText(
-    'Выберите уровень приватного чата, чтобы отправить заявку на вступление:\n\n' +
-    '⬆️ Уровни:\n' +
-    '500K, 2M, 10M $LUDOMAN.',
-    {
-      chat_id: chatId,
-      message_id: messageId,
+  try {
+    const text = 'Выберите уровень чата, чтобы отправить заявку на вступление:\n\n';
+
+    if (messageId) {
+      await bot.deleteMessage(chatId, messageId);
+    }
+
+    await bot.sendMessage(chatId, text, {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: 'Low · 500K ⚡️', url: chats.lowLevel.url },
+            { text: '🌟 Public Chat · 1 $SC ⚡️', url: chats.lowLevel.url },
           ],
           [
-            { text: 'Medium · 2M 🌟', url: chats.mediumLevel.url },
+            { text: '🌙 Monthly Chat · 10K $SC 💳', callback_data: 'MonthlyChat' },
           ],
           [
-            { text: 'High · 10M 💎', url: chats.highLevel.url },
+            { text: '🐳 Whale Chat · 1M $SC 🪙', url: chats.highLevel.url },
           ],
           [
             { text: '« Назад', callback_data: 'BackToMenu' },
           ],
         ],
       },
+    });
+  } catch (error) {
+    console.error('Error in handlePrivateChat:', error);
+    await bot.sendMessage(chatId, 'Произошла ошибка при открытии приватного чата.');
+  }
+}
+
+async function handleMonthlyChatMenu(chatId, messageId, bot) {
+  try {
+    if (messageId) {
+      await bot.deleteMessage(chatId, messageId);
     }
-  );
+
+    const user = await User.findOne({ userId: chatId });
+
+    if (!user || !user.connectedWallet) {
+      await bot.sendMessage(
+        chatId,
+        '❌ У вас не подключен кошелек. Пожалуйста, подключите кошелек, чтобы продолжить.'
+      );
+      return;
+    }
+
+    // Проверяем активную подписку
+    const now = new Date();
+    const subscriptionExpiresAt = user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt) : null;
+
+    if (subscriptionExpiresAt && subscriptionExpiresAt > now) {
+      const remainingTime = subscriptionExpiresAt - now;
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (remainingTime < oneDay) {
+        // Если осталось менее 1 суток, предлагаем продлить
+        const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
+        const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
+
+        await bot.sendPhoto(chatId, qrCodeBuffer, {
+          caption: `⏳ Ваша подписка истекает менее чем через 1 день.\n` +
+                   `💰 Вы можете продлить её, оплатив **${monthlyAmount} $SC**.\n` +
+                   `🔑 Код отслеживания: \`${trackingCode}\`` +
+                   `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💸 Отправить 💎', url: payLink }],
+              [{ text: '🔄 Обновить Код 📄', callback_data: 'UpdateTrackingCode' }],
+              [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+              [{ text: '« Назад', callback_data: 'PrivateChat' }],
+            ],
+          },
+        });
+
+        await startPaymentVerification(bot, chatId, user.userId);
+        return;
+      }
+
+      // Если подписка активна
+      const formattedDate = new Intl.DateTimeFormat('ru-RU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(subscriptionExpiresAt);
+
+      await bot.sendMessage(chatId, `✅ Ваша подписка активна до: <b>${formattedDate}</b>.`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+            [{ text: '« Назад', callback_data: 'PrivateChat' }],
+          ],
+        },
+      });
+      return;
+    }
+
+    // Если подписки нет, генерируем QR-код и ссылку
+    const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
+    const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
+
+    await bot.sendPhoto(chatId, qrCodeBuffer, {
+      caption: `💰 Для доступа вам необходимо оплатить ежемесячную плату в размере **${monthlyAmount} $SC**.\n` +
+               `🔑 Код отслеживания: \`${trackingCode}\`\n` +
+               `🕒 Срок оплаты: 5 минут` +
+               `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💸 Отправить 💎', url: payLink }],
+          [{ text: '🔄 Обновить Код 📄', callback_data: 'UpdateTrackingCode' }],
+          [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+          [{ text: '« Назад', callback_data: 'PrivateChat' }],
+        ],
+      },
+    });
+
+    await startPaymentVerification(bot, chatId, user.userId);
+  } catch (error) {
+    console.error('Error in handleMonthlyChatMenu:', error);
+    await bot.sendMessage(chatId, 'Произошла ошибка при обработке подписки.');
+  }
+}
+
+async function handleUpdateTrackingCode(chatId, messageId, bot) {
+  try {
+    if (messageId) {
+      await bot.deleteMessage(chatId, messageId);
+    }
+
+    const user = await User.findOne({ userId: chatId });
+
+    if (!user || !user.connectedWallet) {
+      await bot.sendMessage(
+        chatId,
+        '❌ У вас не подключен кошелек. Пожалуйста, подключите кошелек, чтобы продолжить.'
+      );
+      return;
+    }
+
+    const now = new Date();
+    const subscriptionExpiresAt = user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt) : null;
+
+    if (subscriptionExpiresAt && subscriptionExpiresAt > now) {
+      const remainingTime = subscriptionExpiresAt - now;
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (remainingTime < oneDay) {
+        const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
+        const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
+
+        await bot.sendPhoto(chatId, qrCodeBuffer, {
+          caption: `⏳ Ваша подписка истекает менее чем через 1 день.\n` +
+                   `💰 Вы можете продлить её, оплатив **${monthlyAmount} $SC**.\n` +
+                   `🔑 Код отслеживания: \`${trackingCode}\`` +
+                   `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💸 Отправить 💎', url: payLink }],
+              [{ text: '🔄 Обновить Код 📄', callback_data: 'UpdateTrackingCode' }],
+              [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+              [{ text: '« Назад', callback_data: 'PrivateChat' }],
+            ],
+          },
+        });
+
+        await startPaymentVerification(bot, chatId, user.userId);
+        return;
+      }
+
+      const formattedDate = new Intl.DateTimeFormat('ru-RU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(subscriptionExpiresAt);
+
+      await bot.sendMessage(chatId, `✅ Ваша подписка активна до: <b>${formattedDate}</b>.`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+            [{ text: '« Назад', callback_data: 'PrivateChat' }],
+          ],
+        },
+      });
+      return;
+    }
+
+    const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
+    const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
+
+    await bot.sendPhoto(chatId, qrCodeBuffer, {
+      caption: `💰 Для доступа вам необходимо оплатить ежемесячную плату в размере **${monthlyAmount} $SC**.\n` +
+               `🔑 Новый код отслеживания: \`${trackingCode}\`\n` +
+               `🕒 Срок оплаты: 5 минут` +
+               `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '💸 Отправить 💎', url: payLink }],
+          [{ text: '🔄 Обновить Код 📄', callback_data: 'UpdateTrackingCode' }],
+          [{ text: '🎉 Вступить в Чат 📥', url: chats.mediumLevel.url }],
+          [{ text: '« Назад', callback_data: 'PrivateChat' }],
+        ],
+      },
+    });
+
+    await startPaymentVerification(bot, chatId, user.userId);
+  } catch (error) {
+    console.error('Error in handleUpdateTrackingCode:', error);
+    await bot.sendMessage(chatId, 'Произошла ошибка при обновлении кода.');
+  }
 }
 
 module.exports = {
   handleProfile,
   handleDisconnectWallet,
   handleWalletConnection,
-  handlePrivateChat
+  handlePrivateChat,
+  handleUpdateTrackingCode,
+  handleMonthlyChatMenu
 };

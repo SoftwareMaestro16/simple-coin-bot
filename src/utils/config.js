@@ -1,21 +1,21 @@
-const admins = [ 814746769, 265117521, 1047635437, 1784198705, 1903875145, 1945167560, 5160773327]; 
+const admins = [1196918969, 545921]; 
 // 1196918969
 
 const chats = {
   lowLevel: {
-    id: -1002411026595, // -1002478241793
-    url: 'https://t.me/+QzE1IoUI7EoxNDBi', // https://t.me/+BErKBsNBzGk5MjMy
-    requirement: 500000, 
+    id: -1002459435626, 
+    url: 'https://t.me/testscchat',
+    requirement: 0, 
   },
   mediumLevel: {
-    id: -1002469377567,
-    url: 'https://t.me/+Hvdl9P1OSy0yZWMy',
-    requirement: 2000000,
+    id: -1002447328192,
+    url: 'https://t.me/+QgX4FNnK3gY2ODIy',
+    requirement: 0,
   },
   highLevel: {
-    id: -1002305818240,
-    url: 'https://t.me/+KpcbiB-BdqxjNDAy',
-    requirement: 10000000,
+    id: -4688390240,
+    url: 'https://t.me/+y8eBWb_cXyBkNmMy',
+    requirement: 1_000_000, // 1_000_000
   },
 };
 

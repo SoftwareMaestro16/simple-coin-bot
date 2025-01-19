@@ -1,9 +1,9 @@
 const axios = require('axios');
-const LUDOMAN_ADDRESS = 'EQDbKihXMZuNfl7m7VcNrHIyYYYgCFPhccIqNN_ocNn-PBCb';
+const SIMPLE_COIN_ADDRESS = 'kQBpqkbPrhSjleAQ8W9TJpZBj6K3GKijCH-Uz_6H7UnaqVTI'; // EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft
 
 async function getData(wallet) {
   try {
-    const response = await axios.get(`https://tonapi.io/v2/accounts/${wallet}/jettons/${LUDOMAN_ADDRESS}`);
+    const response = await axios.get(`https://tonapi.io/v2/accounts/${wallet}/jettons/${SIMPLE_COIN_ADDRESS}`);
 
     if (response.data && response.data.balance) {
       return response.data.balance / 10 ** 9;
@@ -39,4 +39,5 @@ function getBalance(data) {
 module.exports = {
   getData,
   getBalance,
+  SIMPLE_COIN_ADDRESS
 };
