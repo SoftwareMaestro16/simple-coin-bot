@@ -12,8 +12,12 @@ async function verifyPayment(bot, chatId, userId) {
   const isPaid = await checkPaymentInBlockchain(user.address, user.paymentTrackingCode);
 
   if (isPaid) {
-    const expiresAt = await activateSubscription(userId, 1); 
-    await bot.sendMessage(chatId, `✅ Оплата подтверждена! Подписка активна 30 дней.`);
+    const expiresAt = await activateSubscription(userId, 30); 
+    await resetPaymentTrackingCode(userId); 
+    await bot.sendMessage(
+      chatId,
+      `✅ Оплата подтверждена! Подписка активна 30 дней.`
+    );
     return true;
   }
 
@@ -39,7 +43,7 @@ async function startPaymentVerification(bot, chatId, userId) {
       isPaymentConfirmed = await verifyPayment(bot, chatId, userId);
       if (isPaymentConfirmed) {
         console.log(`Платеж для пользователя ${userId} подтвержден. Остановка проверки.`);
-        clearInterval(interval);
+        clearInterval(interval); 
       } else {
         console.log(`Платеж для пользователя ${userId} пока не найден. Продолжаем отслеживание.`);
       }

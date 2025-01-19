@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ton/core": "^0.59.1",
     "@tonconnect/sdk": "^3.0.5",
     "axios": "^1.7.9",
     "better-sqlite3": "^11.7.0",
