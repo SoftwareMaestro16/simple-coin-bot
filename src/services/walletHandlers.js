@@ -230,14 +230,19 @@ async function handlePrivateChat(chatId, messageId, bot) {
       },
     ];
 
-    const inlineKeyboard = lowLevelChats.map(chat => [
-      { text: chat.title, url: chat.url },
-    ]);
+    const inlineKeyboard = [];
+    for (let i = 0; i < lowLevelChats.length; i += 2) {
+      const row = lowLevelChats.slice(i, i + 2).map(chat => ({
+        text: chat.title,
+        url: chat.url,
+      }));
+      inlineKeyboard.push(row);
+    }
 
     inlineKeyboard.push(
-      [
-        { text: '🌙 Monthly Chat 💳', callback_data: 'MonthlyChat' },
-      ],
+      // [
+      //   { text: '🌙 Monthly Chat 💳', callback_data: 'MonthlyChat' },
+      // ],
       [
         { text: '🐳 Whale Chat 🪙', url: chats.highLevel.url },
       ],
