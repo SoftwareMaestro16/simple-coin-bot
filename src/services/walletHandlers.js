@@ -217,22 +217,38 @@ async function handlePrivateChat(chatId, messageId, bot) {
       await bot.deleteMessage(chatId, messageId);
     }
 
+    const lowLevelChats = [
+      {
+        id: -1002230648515,
+        url: 'https://t.me/TON_in_my_Mindd_Chat',
+        title: '🌟 Public 1 ⚡️',
+      },
+      {
+        id: -1002442392045,
+        url: 'https://t.me/simplecoin_chatSC',
+        title: '🌟 Public 2 ⚡️',
+      },
+    ];
+
+    const inlineKeyboard = lowLevelChats.map(chat => [
+      { text: chat.title, url: chat.url },
+    ]);
+
+    inlineKeyboard.push(
+      [
+        { text: '🌙 Monthly Chat 💳', callback_data: 'MonthlyChat' },
+      ],
+      [
+        { text: '🐳 Whale Chat 🪙', url: chats.highLevel.url },
+      ],
+      [
+        { text: '« Назад', callback_data: 'BackToMenu' },
+      ]
+    );
+
     await bot.sendMessage(chatId, text, {
       reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🌟 Public Chat · 1 $SC ⚡️', url: chats.lowLevel.url },
-          ],
-          [
-            { text: '🌙 Monthly Chat · 10K $SC 💳', callback_data: 'MonthlyChat' },
-          ],
-          [
-            { text: '🐳 Whale Chat · 1M $SC 🪙', url: chats.highLevel.url },
-          ],
-          [
-            { text: '« Назад', callback_data: 'BackToMenu' },
-          ],
-        ],
+        inline_keyboard: inlineKeyboard,
       },
     });
   } catch (error) {
@@ -310,7 +326,6 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
     const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
     const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
 
-    // В этом блоке ничего не изменяем в `subscriptionExpiresAt`, пока не будет успешной оплаты.
     await bot.sendPhoto(chatId, qrCodeBuffer, {
       caption: `💰 Для доступа вам необходимо оплатить ежемесячную плату в размере **${monthlyAmount} $SC**.\n` +
                `🔑 Код отслеживания: \`${trackingCode}\`\n` +
