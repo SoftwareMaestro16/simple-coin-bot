@@ -244,6 +244,9 @@ async function handlePrivateChat(chatId, messageId, bot) {
       //   { text: '🌙 Monthly Chat 💳', callback_data: 'MonthlyChat' },
       // ],
       [
+        { text: '🖼 NFT Chat 👨‍🎨', url: chats.nftChat.url },
+      ],
+      [
         { text: '🐳 Whale Chat 🪙', url: chats.highLevel.url },
       ],
       [

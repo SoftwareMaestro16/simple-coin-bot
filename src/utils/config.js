@@ -2,6 +2,11 @@ const admins = [545921];
 // 1196918969
 
 const chats = {
+  nftChat: {
+    id: -1002499103793,
+    url: 'https://t.me/+FJpL17VFQXxkZTYy',
+    requirement: 0
+  },
   mediumLevel: {
     id: -4685112442,
     url: 'https://t.me/+XiOjphO4IvtjZDJi',

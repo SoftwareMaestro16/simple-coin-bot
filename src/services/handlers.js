@@ -5,6 +5,7 @@ const { admins, chats } = require('../utils/config');
 const { getData } = require('../utils/getBalance');
 const { getUserById, addUser, getAllUsers, setCollectorAddress, setMonthlyTokens, getCollector, setPublicAmount, setWhaleAmount } = require("../db.js");
 const { adminCommands } = require("../utils/adminCommands.js")
+const { getNft } = require("../utils/getNft.js");
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -382,6 +383,28 @@ bot.on('chat_join_request', async (msg) => {
         );
       } else {
         console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${whaleAmount}`);
+        await bot.declineChatJoinRequest(chatId, userId);
+      }
+    }
+
+    if (chatConfig.id === chats.nftChat.id) {
+      const address = user.address;
+      console.log(`Проверяем наличие NFT для пользователя: userId=${userId}, address=${address}`);
+
+      const hasNft = await getNft(address);
+
+      if (hasNft.length > 0) {
+        console.log(`NFT найдено. Принимаем заявку: userId=${userId}`);
+        await bot.approveChatJoinRequest(chatId, userId);
+
+        const firstName = msg.from.first_name || 'Участник';
+        await bot.sendMessage(
+          chatId,
+          `🎉 Добро пожаловать, <b>${firstName}</b>, в наш приватный чат! 🌟`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        console.warn(`NFT отсутствует. Заявка отклонена: userId=${userId}`);
         await bot.declineChatJoinRequest(chatId, userId);
       }
     }
