@@ -1,17 +1,23 @@
 const { chats, admins } = require('../utils/config');
-const { getAllUsers } = require('../db');
+const { getAllUsers, getCollector } = require('../db');
 const { getData } = require('../utils/getBalance');
 
-/**
- * Проверяет пользователей в highLevel чате.
- * Удаляет пользователей, которые не соответствуют требованиям.
- */
 async function checkHighLevelChatUsers(bot) {
-  const chat = chats.highLevel; // Используется исключительно highLevel чат
+  const chat = chats.highLevel;
   console.log(`Starting highLevel chat user check for chat ID: ${chat.id}`);
 
   try {
-    const users = await getAllUsers(); // Получаем всех пользователей из базы
+    const collector = await getCollector();
+    const whaleAmount = collector.whaleAmount;
+
+    if (typeof whaleAmount !== 'number' || whaleAmount <= 0) {
+      console.error('Invalid whaleAmount in collector. Ensure it is set correctly.');
+      return;
+    }
+
+    console.log(`HighLevel chat token requirement (whaleAmount): ${whaleAmount}`);
+
+    const users = await getAllUsers(); 
 
     for (const user of users) {
       const userId = user.userId;
@@ -36,17 +42,17 @@ async function checkHighLevelChatUsers(bot) {
 
         const balance = await getData(user.address);
 
-        if (balance === null) {
-          console.error(`Could not fetch balance for user ${userId}`);
-          continue;
-        }
-
-        if (balance < chat.requirement) {
+        if (balance === null || balance < whaleAmount) {
           console.log(
-            `User ${userId} does not meet the balance requirement for highLevel chat. Current balance: ${balance}. Removing...`
+            `User ${userId} does not meet the balance requirement for highLevel chat. Current balance: ${balance}.`
           );
-          await bot.banChatMember(chat.id, userId); // Удаление пользователя
-          await bot.unbanChatMember(chat.id, userId); // Разблокировка для повторного добавления в будущем
+          if (!admins.includes(userId)) {
+            console.log(`Removing user ${userId} from chat ${chat.id}.`);
+            await bot.banChatMember(chat.id, userId);
+            await bot.unbanChatMember(chat.id, userId);
+          } else {
+            console.log(`Admin ${userId} cannot be removed.`);
+          }
         } else {
           console.log(
             `User ${userId} meets the balance requirement for highLevel chat. Current balance: ${balance}.`
@@ -65,11 +71,8 @@ async function checkHighLevelChatUsers(bot) {
   }
 }
 
-/**
- * Запускает проверку пользователей в highLevel чате каждые 2 часа.
- */
 function startHighLevelChatUserCheck(bot) {
-  setInterval(() => checkHighLevelChatUsers(bot), 7200000); // Интервал проверки: 2 часа
+  setInterval(() => checkHighLevelChatUsers(bot), 7200000); // 2 hours 7200000
 }
 
 module.exports = {

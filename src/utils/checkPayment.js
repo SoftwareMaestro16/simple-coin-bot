@@ -23,7 +23,7 @@ async function checkPaymentInBlockchain(walletAddress, expectedComment) {
 
   const collectorAddress = Address.parse(collector.collectorAddress);
 
-  const url = `https://testnet.tonapi.io/v2/accounts/${walletAddress}/events?limit=25`;
+  const url = `https://tonapi.io/v2/accounts/${walletAddress}/events?limit=25`;
   console.log(`Запрос URL: ${url}`);
 
   try {

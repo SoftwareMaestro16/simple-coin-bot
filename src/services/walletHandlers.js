@@ -136,7 +136,6 @@ async function handleWalletConnection(chatId, walletName, messageId) {
           const rawBalance = await getData(userFriendlyAddress);
           const balance = new Intl.NumberFormat('en-US').format(rawBalance);
 
-          // Обновляем информацию в базе данных, включая название кошелька
           updateUserAddressAndBalance(chatId, userFriendlyAddress, rawBalance, wallet.device.appName);
 
           if (qrMessageId) {
@@ -258,7 +257,6 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
       return;
     }
 
-    // Проверяем активную подписку
     const now = new Date();
     const subscriptionExpiresAt = user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt) : null;
 
@@ -267,7 +265,6 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
       const oneDay = 24 * 60 * 60 * 1000;
 
       if (remainingTime < oneDay) {
-        // Если осталось менее 1 суток, предлагаем продлить
         const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
         const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
 

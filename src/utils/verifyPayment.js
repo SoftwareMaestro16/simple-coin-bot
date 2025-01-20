@@ -13,7 +13,7 @@ async function verifyPayment(bot, chatId, userId) {
 
     if (isPaid) {
         try {
-            const durationMinutes = 2; // 30 дней в минутах 30 * 24 * 60
+            const durationMinutes = 30 * 24 * 60; // 30 дней в минутах 30 * 24 * 60
             console.log('Activating subscription with durationMinutes:', durationMinutes);
 
             await activateSubscription(userId, durationMinutes);
@@ -22,7 +22,7 @@ async function verifyPayment(bot, chatId, userId) {
 
             await bot.sendMessage(
                 chatId,
-                `✅ Оплата подтверждена! Подписка активна на ${durationMinutes / (24 * 60)} дней.`
+                `✅ Оплата подтверждена! Подписка активна на 30 дней.`
             );
             return true;
         } catch (error) {

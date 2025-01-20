@@ -128,6 +128,42 @@ async function setMonthlyTokens(amount) {
   }
 }
 
+async function setPublicAmount(amount) {
+  try {
+    const collector = await getCollector();
+
+    if (typeof amount !== 'number' || amount < 0) {
+      throw new Error('Invalid public amount. It must be a non-negative number.');
+    }
+
+    collector.publicAmount = amount;
+    await collector.save();
+
+    console.log(`Public tokens updated: ${amount}`);
+  } catch (error) {
+    console.error('Error updating public tokens:', error);
+    throw error;
+  }
+}
+
+async function setWhaleAmount(amount) {
+  try {
+    const collector = await getCollector();
+
+    if (typeof amount !== 'number' || amount < 0) {
+      throw new Error('Invalid whale amount. It must be a non-negative number.');
+    }
+
+    collector.whaleAmount = amount;
+    await collector.save();
+
+    console.log(`Whale tokens updated: ${amount}`);
+  } catch (error) {
+    console.error('Error updating whale tokens:', error);
+    throw error;
+  }
+}
+
 async function setPaymentTrackingCode(userId, trackingCode) {
   return await User.findOneAndUpdate(
     { userId },
@@ -138,7 +174,7 @@ async function setPaymentTrackingCode(userId, trackingCode) {
 
 async function activateSubscription(userId, durationMinutes) {
   if (typeof durationMinutes !== 'number' || durationMinutes <= 0) {
-      console.error('Invalid durationMinutes:', durationMinutes); // Логируем ошибочное значение
+      console.error('Invalid durationMinutes:', durationMinutes); 
       throw new Error('Invalid durationMinutes. It must be a positive number.');
   }
 
@@ -146,7 +182,7 @@ async function activateSubscription(userId, durationMinutes) {
   const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
 
   if (isNaN(expiresAt.getTime())) {
-      console.error('Invalid expiration date:', expiresAt); // Логируем некорректную дату
+      console.error('Invalid expiration date:', expiresAt); 
       throw new Error('Generated expiration date is invalid.');
   }
 
@@ -171,6 +207,26 @@ async function resetPaymentTrackingCode(userId) {
   );
 }
 
+async function getPublicTokenAmount() {
+  try {
+    const collector = await getCollector();
+    return collector.publicAmount;
+  } catch (error) {
+    console.error('Error fetching public token amount:', error);
+    return 1; 
+  }
+}
+
+async function getHighLevelRequirement() {
+  try {
+    const collector = await getCollector();
+    return collector.whaleAmount;
+  } catch (error) {
+    console.error('Error fetching whale token amount:', error);
+    return 0; 
+  }
+}
+
 module.exports = {
   addUser,
   getUserById,
@@ -180,9 +236,12 @@ module.exports = {
   getCollector,
   setCollectorAddress,
   setMonthlyTokens,
-
+  setPublicAmount,
+  setWhaleAmount,
   setPaymentTrackingCode,
   activateSubscription,
   getUserById,
   resetPaymentTrackingCode,
+  getPublicTokenAmount,
+  getHighLevelRequirement
 };

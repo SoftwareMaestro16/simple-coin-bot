@@ -12,8 +12,16 @@ const adminCommands = [
       description: 'Установить адрес сборщика токенов.',
     },
     {
+        command: '/set_public_tokens',
+        description: 'Установить количество токенов для публичного чата.',
+    },
+    {
       command: '/set_monthly_tokens',
       description: 'Установить количество токенов для ежемесячной оплаты.',
+    },
+    {
+        command: '/set_whale_tokens',
+        description: 'Установить количество токенов для чата китов.',
     },
     {
       command: '/get_payment_info',

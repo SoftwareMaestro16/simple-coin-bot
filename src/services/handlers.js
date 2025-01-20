@@ -1,10 +1,9 @@
 const bot = require('../bot');
 const { handleProfile, handleDisconnectWallet, handleWalletConnection, handlePrivateChat, handleUpdateTrackingCode, handleMonthlyChatMenu } = require('./walletHandlers');
-const { getUserById, addUser, getAllUsers } = require('../db');
 const { generateMainKeyboard } = require('./keyboardUtils');
 const { admins, chats } = require('../utils/config');
 const { getData } = require('../utils/getBalance');
-const { setCollectorAddress, setMonthlyTokens, getCollector } = require("../db.js");
+const { getUserById, addUser, getAllUsers, setCollectorAddress, setMonthlyTokens, getCollector, setPublicAmount, setWhaleAmount } = require("../db.js");
 const { adminCommands } = require("../utils/adminCommands.js")
 
 bot.onText(/\/start/, async (msg) => {
@@ -150,6 +149,76 @@ bot.onText(/\/set_monthly_tokens/, async (msg) => {
   });
 });
 
+bot.onText(/\/set_public_tokens/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  await bot.sendMessage(chatId, 'Пожалуйста, отправьте количество токенов для публичного чата.\nВведите /cancel, чтобы отменить.');
+
+  const listener = bot.on('message', async (response) => {
+    if (response.text === '/cancel') {
+      bot.removeListener('message', listener);
+      return bot.sendMessage(chatId, '❌ Ввод отменен.');
+    }
+
+    try {
+      const input = response.text.trim().replace(',', '.');
+      const tokens = parseFloat(input);
+
+      if (isNaN(tokens) || tokens <= 0) {
+        throw new Error('Некорректное количество токенов.');
+      }
+
+      await setPublicAmount(tokens);
+      await bot.sendMessage(chatId, `✅ Количество токенов для публичного чата установлено: ${tokens}`);
+      bot.removeListener('message', listener);
+    } catch (error) {
+      console.error('Error setting public tokens:', error);
+      await bot.sendMessage(chatId, '❌ Произошла ошибка при установке количества токенов. Проверьте, что вы ввели корректное значение.');
+      bot.removeListener('message', listener);
+    }
+  });
+});
+
+bot.onText(/\/set_whale_tokens/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!admins.includes(userId)) {
+    return bot.sendMessage(chatId, 'У вас нет прав.');
+  }
+
+  await bot.sendMessage(chatId, 'Пожалуйста, отправьте количество токенов для чата китов.\nВведите /cancel, чтобы отменить.');
+
+  const listener = bot.on('message', async (response) => {
+    if (response.text === '/cancel') {
+      bot.removeListener('message', listener);
+      return bot.sendMessage(chatId, '❌ Ввод отменен.');
+    }
+
+    try {
+      const input = response.text.trim().replace(',', '.');
+      const tokens = parseFloat(input);
+
+      if (isNaN(tokens) || tokens <= 0) {
+        throw new Error('Некорректное количество токенов.');
+      }
+
+      await setWhaleAmount(tokens);
+      await bot.sendMessage(chatId, `✅ Количество токенов для чата китов установлено: ${tokens}`);
+      bot.removeListener('message', listener);
+    } catch (error) {
+      console.error('Error setting whale tokens:', error);
+      await bot.sendMessage(chatId, '❌ Произошла ошибка при установке количества токенов. Проверьте, что вы ввели корректное значение.');
+      bot.removeListener('message', listener);
+    }
+  });
+});
+
 bot.onText(/\/get_payment_info/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -161,10 +230,16 @@ bot.onText(/\/get_payment_info/, async (msg) => {
   try {
     const collector = await getCollector();
 
-    if (!collector || !collector.collectorAddress || collector.monthlyAmount === undefined) {
+    if (
+      !collector || 
+      !collector.collectorAddress || 
+      collector.monthlyAmount === undefined || 
+      collector.publicAmount === undefined || 
+      collector.whaleAmount === undefined
+    ) {
       await bot.sendMessage(
         chatId,
-        '❌ Данные сборщика или количество токенов не настроены. Пожалуйста, настройте их с помощью /set_collector_address и /set_monthly_tokens.'
+        '❌ Данные сборщика или количество токенов не настроены. Пожалуйста, настройте их с помощью /set_collector_address, /set_monthly_tokens, /set_public_tokens и /set_whale_tokens.'
       );
       return;
     }
@@ -173,9 +248,13 @@ bot.onText(/\/get_payment_info/, async (msg) => {
 💡 <b>Информация об оплате:</b>
 
 🔑 <b>Адрес Cборщика:</b>
-<code>${collector.collectorAddress}.</code>
+<code>${collector.collectorAddress}</code>
 
-💰 <b>Сумма Ежемесячного Платежа:</b> ${collector.monthlyAmount} $SC.
+🌐 <b>Сумма для Публичного Чата:</b> ${collector.publicAmount} $SC
+
+💰 <b>Сумма Ежемесячного Платежа:</b> ${collector.monthlyAmount} $SC
+
+🐋 <b>Сумма для Чата Китов:</b> ${collector.whaleAmount} $SC
     `;
 
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
@@ -266,7 +345,6 @@ bot.on('chat_join_request', async (msg) => {
   try {
     const now = new Date();
 
-    // Проверка для highLevel (по балансу)
     if (chatConfig.id === chats.highLevel.id) {
       const address = user.address;
 
@@ -277,11 +355,22 @@ bot.on('chat_join_request', async (msg) => {
       }
 
       console.log(`Проверяем баланс пользователя: userId=${userId}, address=${address}`);
+
+      // Получаем значение whaleAmount из базы данных
+      const collector = await getCollector();
+      const whaleAmount = collector.whaleAmount || 0;
+
+      if (whaleAmount <= 0) {
+        console.error('whaleAmount не задано или неверно. Убедитесь, что оно настроено.');
+        await bot.sendMessage(chatId, '❌ Ошибка конфигурации чата. Пожалуйста, обратитесь к администратору.');
+        return;
+      }
+
       const currentBalance = await getData(address);
 
-      console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${chatConfig.requirement}`);
+      console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${whaleAmount}`);
 
-      if (currentBalance >= chatConfig.requirement) {
+      if (currentBalance >= whaleAmount) {
         console.log(`Баланс пользователя достаточный. Принимаем заявку: userId=${userId}`);
         await bot.approveChatJoinRequest(chatId, userId);
 
@@ -292,7 +381,7 @@ bot.on('chat_join_request', async (msg) => {
           { parse_mode: 'HTML' }
         );
       } else {
-        console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${chatConfig.requirement}`);
+        console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${whaleAmount}`);
         await bot.declineChatJoinRequest(chatId, userId);
       }
     }
