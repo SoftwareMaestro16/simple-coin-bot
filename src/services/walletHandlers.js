@@ -221,12 +221,12 @@ async function handlePrivateChat(chatId, messageId, bot) {
       {
         id: -1002230648515,
         url: 'https://t.me/TON_in_my_Mindd_Chat',
-        title: '🌟 Public 1 ⚡️',
+        title: '🌟 Public 1',
       },
       {
         id: -1002442392045,
         url: 'https://t.me/simplecoin_chatSC',
-        title: '🌟 Public 2 ⚡️',
+        title: 'Public 2 ⚡️',
       },
     ];
 
