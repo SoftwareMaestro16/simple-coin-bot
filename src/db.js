@@ -131,18 +131,31 @@ async function setMonthlyTokens(amount) {
 async function setPaymentTrackingCode(userId, trackingCode) {
   return await User.findOneAndUpdate(
     { userId },
-    { paymentTrackingCode: trackingCode, subscriptionExpiresAt: null },
+    { paymentTrackingCode: trackingCode },
     { new: true }
   );
 }
 
 async function activateSubscription(userId, durationMinutes) {
+  if (typeof durationMinutes !== 'number' || durationMinutes <= 0) {
+      console.error('Invalid durationMinutes:', durationMinutes); // Логируем ошибочное значение
+      throw new Error('Invalid durationMinutes. It must be a positive number.');
+  }
+
   const now = new Date();
   const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+
+  if (isNaN(expiresAt.getTime())) {
+      console.error('Invalid expiration date:', expiresAt); // Логируем некорректную дату
+      throw new Error('Generated expiration date is invalid.');
+  }
+
+  console.log('Generated expiration date:', expiresAt);
+
   return await User.findOneAndUpdate(
-    { userId },
-    { paymentTrackingCode: null, subscriptionExpiresAt: expiresAt },
-    { new: true }
+      { userId },
+      { paymentTrackingCode: null, subscriptionExpiresAt: expiresAt },
+      { new: true }
   );
 }
 

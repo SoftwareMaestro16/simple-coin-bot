@@ -274,8 +274,7 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
         await bot.sendPhoto(chatId, qrCodeBuffer, {
           caption: `⏳ Ваша подписка истекает менее чем через 1 день.\n` +
                    `💰 Вы можете продлить её, оплатив **${monthlyAmount} $SC**.\n` +
-                   `🔑 Код отслеживания: \`${trackingCode}\`` +
-                   `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+                   `🔑 Код отслеживания: \`${trackingCode}\`\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
@@ -291,7 +290,6 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
         return;
       }
 
-      // Если подписка активна
       const formattedDate = new Intl.DateTimeFormat('ru-RU', {
         year: 'numeric',
         month: 'long',
@@ -312,15 +310,14 @@ async function handleMonthlyChatMenu(chatId, messageId, bot) {
       return;
     }
 
-    // Если подписки нет, генерируем QR-код и ссылку
     const { payLink, trackingCode, monthlyAmount } = await generatePayLink(user.connectedWallet, chatId);
     const qrCodeBuffer = await QRCode.toBuffer(payLink, { width: 300 });
 
+    // В этом блоке ничего не изменяем в `subscriptionExpiresAt`, пока не будет успешной оплаты.
     await bot.sendPhoto(chatId, qrCodeBuffer, {
       caption: `💰 Для доступа вам необходимо оплатить ежемесячную плату в размере **${monthlyAmount} $SC**.\n` +
                `🔑 Код отслеживания: \`${trackingCode}\`\n` +
-               `🕒 Срок оплаты: 5 минут` +
-               `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+               `🕒 Срок оплаты: 5 минут\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
@@ -369,8 +366,7 @@ async function handleUpdateTrackingCode(chatId, messageId, bot) {
         await bot.sendPhoto(chatId, qrCodeBuffer, {
           caption: `⏳ Ваша подписка истекает менее чем через 1 день.\n` +
                    `💰 Вы можете продлить её, оплатив **${monthlyAmount} $SC**.\n` +
-                   `🔑 Код отслеживания: \`${trackingCode}\`` +
-                   `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+                   `🔑 Код отслеживания: \`${trackingCode}\`\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
@@ -412,8 +408,7 @@ async function handleUpdateTrackingCode(chatId, messageId, bot) {
     await bot.sendPhoto(chatId, qrCodeBuffer, {
       caption: `💰 Для доступа вам необходимо оплатить ежемесячную плату в размере **${monthlyAmount} $SC**.\n` +
                `🔑 Новый код отслеживания: \`${trackingCode}\`\n` +
-               `🕒 Срок оплаты: 5 минут` +
-               `\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
+               `🕒 Срок оплаты: 5 минут\n\n❗️Важно! Не закрывайте это меню во время Оплаты.`,
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
@@ -431,7 +426,6 @@ async function handleUpdateTrackingCode(chatId, messageId, bot) {
     await bot.sendMessage(chatId, 'Произошла ошибка при обновлении кода.');
   }
 }
-
 module.exports = {
   handleProfile,
   handleDisconnectWallet,

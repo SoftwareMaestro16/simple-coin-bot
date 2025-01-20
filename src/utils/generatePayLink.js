@@ -7,7 +7,7 @@ const prefix = {
   "Tonhub": 'https://tonhub.com/'
 };
 
-function generateRandomText(length = 8) {
+function generateRandomText(length = 12) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {

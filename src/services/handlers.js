@@ -263,35 +263,75 @@ bot.on('chat_join_request', async (msg) => {
     return;
   }
 
-  const requiredBalance = chatConfig.requirement;
-
   try {
-    const address = user.address;
+    const now = new Date();
 
-    if (!address) {
-      console.error(`Address не найден для пользователя ${userId}. Заявка отклонена.`);
-      return;
+    // Проверка для highLevel (по балансу)
+    if (chatConfig.id === chats.highLevel.id) {
+      const address = user.address;
+
+      if (!address) {
+        console.error(`Address не найден для пользователя ${userId}. Заявка отклонена.`);
+        await bot.declineChatJoinRequest(chatId, userId);
+        return;
+      }
+
+      console.log(`Проверяем баланс пользователя: userId=${userId}, address=${address}`);
+      const currentBalance = await getData(address);
+
+      console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${chatConfig.requirement}`);
+
+      if (currentBalance >= chatConfig.requirement) {
+        console.log(`Баланс пользователя достаточный. Принимаем заявку: userId=${userId}`);
+        await bot.approveChatJoinRequest(chatId, userId);
+
+        const firstName = msg.from.first_name || 'Участник';
+        await bot.sendMessage(
+          chatId,
+          `🎉 Добро пожаловать, <b>${firstName}</b>, в наш приватный чат! 🌟\n\n`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${chatConfig.requirement}`);
+        await bot.declineChatJoinRequest(chatId, userId);
+      }
     }
 
-    console.log(`Проверяем баланс пользователя: userId=${userId}, address=${address}`);
-
-    const currentBalance = await getData(address);
-
-    console.log(`Баланс пользователя: currentBalance=${currentBalance}, requiredBalance=${requiredBalance}`);
-
-    if (currentBalance >= requiredBalance) {
-      console.log(`Баланс пользователя достаточный. Принимаем заявку: userId=${userId}`);
-      await bot.approveChatJoinRequest(chatId, userId);
-
-      const firstName = msg.from.first_name || 'Участник';
-      await bot.sendMessage(
-        chatId,
-        `🎉 Добро пожаловать, <b>${firstName}</b>, в наш приватный чат! 🌟\n\n`,
-        { parse_mode: 'HTML' }
-      );
-    } else {
-      console.warn(`Недостаточно средств: userId=${userId}, balance=${currentBalance}, required=${requiredBalance}`);
-      await bot.declineChatJoinRequest(chatId, userId);
+    if (chatConfig.id === chats.mediumLevel.id) {
+      const subscriptionExpiresAt = user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt) : null;
+    
+      if (subscriptionExpiresAt && subscriptionExpiresAt > now) {
+        console.log(`Подписка пользователя активна. Принимаем заявку: userId=${userId}`);
+        await bot.approveChatJoinRequest(chatId, userId);
+    
+        const firstName = msg.from.first_name || 'Участник';
+        await bot.sendMessage(
+          chatId,
+          `🎉 Добро пожаловать, <b>${firstName}</b>, в наш приватный чат! 🌙`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        console.warn(`Подписка пользователя истекла или отсутствует: userId=${userId}`);
+        await bot.declineChatJoinRequest(chatId, userId);
+    
+        try {
+          const botMessage = await bot.sendMessage(
+            userId,
+            `❌ Ваша подписка на чат отсутствует. Пожалуйста, продлите её, чтобы получить доступ.`,
+          );
+    
+          setTimeout(async () => {
+            try {
+              await bot.deleteMessage(userId, botMessage.message_id);
+              console.log(`Сообщение удалено для userId=${userId}`);
+            } catch (deleteError) {
+              console.error(`Ошибка при удалении сообщения для userId=${userId}:`, deleteError);
+            }
+          }, 7000);
+        } catch (sendError) {
+          console.error(`Ошибка отправки сообщения для userId=${userId}:`, sendError);
+        }
+      }
     }
   } catch (error) {
     console.error(`Ошибка обработки запроса на присоединение: userId=${userId}, chatId=${chatId}`, error);

@@ -2,26 +2,37 @@ const { checkPaymentInBlockchain } = require('../utils/checkPayment');
 const { activateSubscription, getUserById, resetPaymentTrackingCode } = require('../db');
 
 async function verifyPayment(bot, chatId, userId) {
-  const user = await getUserById(userId);
+    const user = await getUserById(userId);
 
-  if (!user || !user.connectedWallet || !user.paymentTrackingCode) {
-    await bot.sendMessage(chatId, '❌ Нет данных для проверки. Пожалуйста, создайте новый код.');
+    if (!user || !user.connectedWallet || !user.paymentTrackingCode) {
+        await bot.sendMessage(chatId, '❌ Нет данных для проверки. Пожалуйста, создайте новый код.');
+        return false;
+    }
+
+    const isPaid = await checkPaymentInBlockchain(user.address, user.paymentTrackingCode);
+
+    if (isPaid) {
+        try {
+            const durationMinutes = 2; // 30 дней в минутах 30 * 24 * 60
+            console.log('Activating subscription with durationMinutes:', durationMinutes);
+
+            await activateSubscription(userId, durationMinutes);
+
+            await resetPaymentTrackingCode(userId);
+
+            await bot.sendMessage(
+                chatId,
+                `✅ Оплата подтверждена! Подписка активна на ${durationMinutes / (24 * 60)} дней.`
+            );
+            return true;
+        } catch (error) {
+            console.error('Ошибка при обновлении подписки:', error);
+            await bot.sendMessage(chatId, 'Произошла ошибка при обновлении подписки.');
+            return false;
+        }
+    }
+
     return false;
-  }
-
-  const isPaid = await checkPaymentInBlockchain(user.address, user.paymentTrackingCode);
-
-  if (isPaid) {
-    const expiresAt = await activateSubscription(userId, 30); 
-    await resetPaymentTrackingCode(userId); 
-    await bot.sendMessage(
-      chatId,
-      `✅ Оплата подтверждена! Подписка активна 30 дней.`
-    );
-    return true;
-  }
-
-  return false; 
 }
 
 async function startPaymentVerification(bot, chatId, userId) {

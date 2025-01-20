@@ -1,10 +1,12 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const { startChatUserCheck } = require('./services/chatUserCheck');
+const { startHighLevelChatUserCheck } = require('./services/chatUserCheck');
 const { checkLowLevelMessage } = require('./services/publicChat');
+const { startMonthlyChatUserCheck } = require('./services/monthlyChat');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-startChatUserCheck(bot);
+startHighLevelChatUserCheck(bot);
+startMonthlyChatUserCheck(bot);
 
 bot.on('message', async (msg) => {
     try {
