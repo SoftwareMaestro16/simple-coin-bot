@@ -11,6 +11,7 @@ const User = require('../models/User');
 const { generatePayLink } = require('../utils/generatePayLink');
 const QRCode = require('qrcode');
 const { startPaymentVerification } = require('../utils/verifyPayment');
+const { getNft } = require("../utils/getNft");
 
 async function handleProfile(chatId, messageId) {
   try {
@@ -39,15 +40,34 @@ async function handleProfile(chatId, messageId) {
       balance = 'Не Подключен';
     }
 
+    let nftStatus = 'Не Проверено';
+    if (user.address) {
+      try {
+        const nftResponse = await getNft(user.address);
+        console.log(nftResponse);
+        
+        const hasNft = nftResponse?.length > 0;
+        console.log(hasNft);
+        
+        nftStatus = hasNft ? 'Есть ✅' : 'Нет ❌';
+      } catch (error) {
+        console.error('Error fetching NFT data:', error);
+        nftStatus = 'Ошибка загрузки ❌';
+      }
+    } else {
+      nftStatus = 'Не Подключен ❌';
+    }
+
     const options = generateProfileKeyboard(address);
 
     await bot.editMessageText(
       `👤 <b>Ваш профиль:</b>\n\n` +
       `<b>Имя:</b> <code>${user.userId}</code>\n` +
       `<b>Имя:</b> ${user.firstName}\n` +
-      `<b>Username:</b> @${user.userName}\n` +
+      `<b>Username:</b> @${user.userName || 'Не указан'}\n` +
       `<b>Адрес:</b> <code>${address}</code>\n` +
-      `<b>Баланс:</b> ${balance}`,
+      `<b>$SC:</b> ${balance}\n` +
+      `<b>NFT:</b> ${nftStatus}`,
       {
         chat_id: chatId,
         message_id: messageId,
@@ -136,6 +156,17 @@ async function handleWalletConnection(chatId, walletName, messageId) {
           const rawBalance = await getData(userFriendlyAddress);
           const balance = new Intl.NumberFormat('en-US').format(rawBalance);
 
+          // Проверяем наличие NFT
+          let nftStatus = 'Не Проверено ❌';
+          try {
+            const nftResponse = await getNft(userFriendlyAddress);
+            const hasNft = nftResponse?.length > 0;
+            nftStatus = hasNft ? 'Есть ✅' : 'Нет ❌';
+          } catch (error) {
+            console.error('Failed to fetch NFT status:', error);
+            nftStatus = 'Ошибка загрузки ❌';
+          }
+
           updateUserAddressAndBalance(chatId, userFriendlyAddress, rawBalance, wallet.device.appName);
 
           if (qrMessageId) {
@@ -144,7 +175,10 @@ async function handleWalletConnection(chatId, walletName, messageId) {
 
           bot.sendMessage(
             chatId,
-            `🎉 <b>${wallet.device.appName}</b> Кошелек Подключен!\nАдрес: <code>${editTonAddress(userFriendlyAddress)}</code>\n<b>$SC: </b><code>${balance}</code>`,
+            `🎉 <b>${wallet.device.appName}</b> Кошелек Подключен!\n` +
+            `Адрес: <code>${editTonAddress(userFriendlyAddress)}</code>\n` +
+            `<b>$SC:</b> <code>${balance}</code>\n` +
+            `<b>NFT:</b> ${nftStatus}`,
             {
               parse_mode: 'HTML',
               reply_markup: {
@@ -165,7 +199,8 @@ async function handleWalletConnection(chatId, walletName, messageId) {
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: 'DeDust 🟨', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft' },
+                  { text: '🟨 DeDust', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft' },
+                  { text: 'GetGems 💎', url: 'https://getgems.io/collection/EQCJy4Dfd0HNDnGoD7vPVL-THzwqOoaICgz46wqe54W_uHy8' },
                 ],
                 [
                   { text: 'Tonkeeper', callback_data: 'Tonkeeper' },

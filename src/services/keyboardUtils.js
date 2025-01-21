@@ -8,8 +8,9 @@ function generateMainKeyboard(address) {
             { text: 'Приватный Чат 🌟', callback_data: 'PrivateChat' },
           ],
           [
-            { text: 'DeDust 🟨', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft'},
-          ]
+            { text: '🟨 DeDust', url: 'https://dedust.io/swap/TON/EQB9QBqniFI0jOmw3PU6v1v4LU3Sivm9yPXDDB9Qf7cXTDft' },
+            { text: 'GetGems 💎', url: 'https://getgems.io/collection/EQCJy4Dfd0HNDnGoD7vPVL-THzwqOoaICgz46wqe54W_uHy8' },
+          ],
         ]
       : [
           [

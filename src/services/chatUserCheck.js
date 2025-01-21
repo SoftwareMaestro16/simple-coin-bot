@@ -37,6 +37,8 @@ async function checkHighLevelChatUsers(bot) {
 
         if (!user.address) {
           console.log(`User ${userId} does not have a connected wallet.`);
+          await bot.banChatMember(chat.id, userId);
+          await bot.unbanChatMember(chat.id, userId);
           continue;
         }
 

@@ -27,6 +27,8 @@ async function checkNftChat(bot) {
 
         if (!user.address) {
           console.log(`User ${userId} does not have a connected wallet.`);
+          await bot.banChatMember(chat.id, userId);
+          await bot.unbanChatMember(chat.id, userId);
           continue;
         }
 
@@ -34,7 +36,7 @@ async function checkNftChat(bot) {
 
         const nftResponse = await getNft(user.address);
 
-        const hasNft = nftResponse?.nft_items?.length > 0;
+        const hasNft = nftResponse?.length > 0;
 
         if (!hasNft) {
           console.log(
