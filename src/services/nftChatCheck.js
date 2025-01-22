@@ -1,6 +1,7 @@
 const { getNft } = require('../utils/getNft');
 const { chats, admins } = require('../utils/config');
 const { getAllUsers } = require('../db');
+const { delay } = require('../utils/delay');
 
 async function checkNftChat(bot) {
   const chat = chats.nftChat;
@@ -16,6 +17,8 @@ async function checkNftChat(bot) {
         console.log(`Skipping admin: ${userId}`);
         continue; 
       }
+
+      await delay(2350);
 
       try {
         const chatMember = await bot.getChatMember(chat.id, userId);

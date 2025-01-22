@@ -1,6 +1,7 @@
 const { chats, admins } = require('../utils/config');
 const { getAllUsers, getCollector } = require('../db');
 const { getData } = require('../utils/getBalance');
+const { delay } = require('../utils/delay');
 
 async function checkHighLevelChatUsers(bot) {
   const chat = chats.highLevel;
@@ -26,6 +27,8 @@ async function checkHighLevelChatUsers(bot) {
         console.log(`Skipping admin: ${userId}`);
         continue;
       }
+
+      await delay(2350);
 
       try {
         const chatMember = await bot.getChatMember(chat.id, userId);

@@ -1,5 +1,6 @@
 const { chats, admins } = require('../utils/config');
 const { getAllUsers } = require('../db');
+const { delay } = require('../utils/delay');
 
 async function checkMonthlyChatUsers(bot) {
     const chat = chats.mediumLevel;
@@ -23,6 +24,8 @@ async function checkMonthlyChatUsers(bot) {
             const subscriptionDate = new Date(user.subscriptionExpiresAt);
             const currentDate = new Date();
             const timeRemaining = subscriptionDate - currentDate;
+
+            await delay(2350);
 
             try {
                 const chatMember = await bot.getChatMember(chat.id, userId);
