@@ -135,8 +135,7 @@ async function handleWalletConnection(chatId, walletName, messageId) {
           }
 
           await bot.sendMessage(
-            chatId,
-            '❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
+            chatId,'❌ Данный кошелек уже был подключен ранее. Пожалуйста, используйте другой кошелек.',
             {
               reply_markup: {
                 inline_keyboard: [
@@ -282,7 +281,7 @@ async function handlePrivateChat(chatId, messageId, bot) {
         { text: '🖼 NFT Chat 👨‍🎨', url: chats.nftChat.url },
       ],
       [
-        { text: '🐳 Whale Chat 🪙', url: chats.highLevel.url },
+        { text: '🐳 SC Gang 🪙', url: chats.highLevel.url },
       ],
       [
         { text: '« Назад', callback_data: 'BackToMenu' },

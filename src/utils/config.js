@@ -13,8 +13,8 @@ const chats = {
     requirement: 0,
   },
   highLevel: {
-    id: -4764178222,
-    url: 'https://t.me/+OrO-K5CHbK5mYjdi',
+    id: -1002351898220,
+    url: 'https://t.me/+OE6-GfOgRLU4M2M6', // https://t.me/+OE6-GfOgRLU4M2M6
     requirement: 1000000, // 1_000_000
   },
 };
