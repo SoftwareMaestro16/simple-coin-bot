@@ -74,7 +74,7 @@ async function checkHighLevelChatUsers(bot) {
 }
 
 function startHighLevelChatUserCheck(bot) {
-  setInterval(() => checkHighLevelChatUsers(bot), 10000); // 2 часа (7200000)
+  setInterval(() => checkHighLevelChatUsers(bot), 7200000); // 2 часа (7200000)
 }
 
 module.exports = {
