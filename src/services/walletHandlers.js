@@ -284,6 +284,9 @@ async function handlePrivateChat(chatId, messageId, bot) {
         { text: '🐳 SC Gang 🪙', url: chats.highLevel.url },
       ],
       [
+        { text: '🖼 Rikki Rich 🎩', url: chats.nftChat2.url },
+      ],
+      [
         { text: '« Назад', callback_data: 'BackToMenu' },
       ]
     );

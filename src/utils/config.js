@@ -17,6 +17,11 @@ const chats = {
     url: 'https://t.me/+7oTodZvqDXU1ZTFi', // https://t.me/+OE6-GfOgRLU4M2M6
     requirement: 1000000, // 1_000_000
   },
+  nftChat2: {
+    id: -1002481348756,
+    url: 'https://t.me/+avpzBiwcJ6o1Mjky',
+    requirement: 0
+  },
 };
 
 module.exports = {
