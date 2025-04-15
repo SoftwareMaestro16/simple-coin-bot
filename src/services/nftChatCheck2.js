@@ -4,7 +4,7 @@ const { getAllUsers } = require('../db');
 const { delay } = require('../utils/delay');
 
 async function checkNftChat2(bot) {
-  const chat = chats.nftChat;
+  const chat = chats.nftChat2;
   console.log(`Starting NFT chat user check for chat ID: ${chat.id}`);
 
   try {
